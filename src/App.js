@@ -1,23 +1,38 @@
-import logo from './logo.svg';
+import React, { useEffect, useState } from 'react';
+import io from 'socket.io-client';
+import { fetchResponses } from './services/api';
+import DataTable from './components/DataTable';
+import Header from './components/Header';
 import './App.css';
 
+const socket = io(process.env.REACT_APP_SOCKET_URL);
+
 function App() {
+  const [responses, setResponses] = useState([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const initialData = await fetchResponses();
+      setResponses(initialData || []); 
+    };
+
+    loadData();
+
+    socket.on('new_data', (newData) => {
+      if (newData) {
+        setResponses((prevData) => [newData, ...prevData]);
+      }
+    });
+
+    return () => {
+      socket.off('new_data');
+    };
+  }, []);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="app">
+      <Header title="Real-Time Response Dashboard" />
+      <DataTable data={responses} />
     </div>
   );
 }
